@@ -1,5 +1,7 @@
 # 00. Scope, assumptions and exclusions
 
+Selected cloud: **Amazon Web Services**, used consistently throughout. See [`README.md`](README.md) for the selection rationale.
+
 ## 1. How to read this submission
 
 The scenario gives six tasks and a set of hard constraints. Two of those constraints cannot all be true at once as written. This section does the arithmetic first, because every design decision in the later sections follows from it. A reliability plan that restates the targets without testing them is not a plan.
@@ -98,7 +100,7 @@ Stated so that absence is read as a decision and not as an oversight.
 |---|---|---|
 | E1 | Detailed cost modelling with unit prices. | Prices change and vary by agreement. Cost is addressed as relative trade-off and as a named decision at each control, which is the part that survives a price change. |
 | E2 | Application source code changes beyond interface contracts. | Resilience controls are specified as contracts that application teams implement. Specifying their internals would exceed the brief and the available information. |
-| E3 | Compliance certification mapping. | No regulatory regime is stated in the scenario. Security controls are included on their own merit. Mapping to a named framework would be invention. |
+| E3 | Compliance certification mapping to a named framework. | No regulatory regime is stated in the scenario, so a full control-by-control mapping would be invention. Security controls are included on their own merit. **Partial exception:** section 04.9 addresses BNM RMiT paragraph 10.32, because a Tier 1 service with a stated RTO and a 99.99 percent target has a hard regulatory ceiling behind those numbers in a Malaysian financial-institution context, and a recovery design that ignores it is incomplete. That section is scoped, sourced and explicitly marked as conditional on applicability. |
 | E4 | Organisation-wide capacity and headcount planning. | The brief asks for reliability work to be balanced against delivery capacity, which section 06 does as a prioritisation and governance problem. Staffing proposals need information the scenario does not provide. |
 | E5 | Migration of the existing estate to the target design. | The brief asks for a 90-day reliability backlog, not a re-platforming plan. The roadmap assumes the described architecture is already in production. |
 | E6 | Chaos engineering beyond the defined game-day scope. | A continuous chaos programme is the right end state and is listed as a post-90-day item. Starting there before DR has ever been exercised once would be out of order. |

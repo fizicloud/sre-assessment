@@ -1,0 +1,254 @@
+# Author:  Hafizi Yahaya
+# Created: 2026-11-23
+#
+# Machine-readable SLI/SLO specification for the Tier 1 digital service.
+# Narrative and justification: ../01-reliability-model.md sections 5 and 6.
+# Alarm implementation:        ./burn-rate-alarms.tf
+#
+# Resource names match ../01-reliability-model.md section 1, ../diagrams/architecture.svg
+# and ../runbooks/dr-regional-failover.md. Do not rename in one place only.
+
+apiVersion: reliability/v1
+kind: ServiceLevelObjectives
+
+metadata:
+  service: tier1-digital-service
+  cloud: aws
+  primary_region: us-east-1
+  recovery_region: us-west-2
+  window: 30d-rolling
+  # 30 days = 43,200 minutes. 99.99% permits 4.32 minutes. See ../00-scope-assumptions.md section 2.2.
+
+defaults:
+  window: 30d-rolling
+  burn_rate_alerts:
+    - { burn_rate: 14.4, long: 1h, short: 5m,  budget_consumed: 2%,  action: page,   severity: sev1 }
+    - { burn_rate: 6.0,  long: 6h, short: 30m, budget_consumed: 5%,  action: page,   severity: sev2 }
+    - { burn_rate: 3.0,  long: 1d, short: 2h,  budget_consumed: 10%, action: ticket, severity: sev3 }
+    - { burn_rate: 1.0,  long: 3d, short: 6h,  budget_consumed: 10%, action: ticket, severity: sev3 }
+  # Burn-rate windows protect a budget over time. They are structurally too slow for a
+  # total outage, so every scored journey also carries the hard_down fast path below.
+  hard_down:
+    availability_below: 95%
+    periods: 2
+    period_length: 1m
+    action: page
+    severity: sev1
+
+journeys:
+
+  - id: CUJ-1
+    name: Establish session (first sign-in)
+    tier: 1
+    scored_at_four_nines: false
+    owner: identity-team
+    pager: identity-team
+    rationale: >-
+      Calls ext-idp synchronously and cannot be made asynchronous. 99.9 percent is the
+      honest ceiling given the dependency. Setting 99.99 here would create a target the
+      provider SLA cannot support, which trains everyone to ignore targets.
+    slis:
+      - id: SLI-6
+        type: availability
+        measurement_point: apigw-tier1-use1 access logs, sign-in route, plus syn-cuj1-signin canary
+        good: sign-in completes and a valid session is issued
+        valid: all sign-in attempts
+        exclusions:
+          - genuine credential rejection, which is a success for the system
+        data_source:
+          - api_gateway_access_logs
+          - cloudwatch_synthetics: syn-cuj1-signin
+          - probe: syn-ext-idp
+        objective: 99.9
+        error_budget_minutes_30d: 43.2
+
+  - id: CUJ-2
+    name: Validate session (every authenticated request)
+    tier: 1
+    scored_at_four_nines: true
+    owner: identity-team
+    pager: identity-team
+    rationale: >-
+      Makes no runtime call to ext-idp. Tokens validate locally against a JWKS document
+      cached with a 24h soft TTL and stale-while-revalidate. An ext-idp outage stops new
+      sign-ins and does not touch any customer already signed in.
+    slis:
+      - id: SLI-1
+        type: availability
+        measurement_point: apigw-tier1-use1 access logs, authenticated routes
+        good: status is not 5xx and not an authorizer-caused 401/403
+        valid: all requests to authenticated routes, excluding client-attributable 4xx
+        exclusions:
+          - 400, 404, 422 from documented client misuse
+        counted_as_failure:
+          - 429 arising from the service's own throttling
+          # Throttling a customer because the service cannot cope is unavailability
+          # wearing a different status code. Excluding it is the most common way an
+          # availability SLI is quietly inflated.
+        data_source:
+          - api_gateway_access_logs
+          - cloudwatch_metrics: [4XXError, 5XXError, Count]
+        objective: 99.99
+        error_budget_minutes_30d: 4.32
+
+  - id: CUJ-3
+    name: View account and transaction history
+    tier: 1
+    scored_at_four_nines: true
+    owner: account-team
+    pager: account-team
+    slis:
+      - id: SLI-2a
+        type: availability
+        measurement_point: cf-tier1-dist real-time logs, full customer-observed path
+        good: sc-status not 5xx and x-edge-result-type not Error
+        valid: all requests to the account view route set
+        exclusions:
+          - client aborts, x-edge-result-type ClientCommError
+        data_source:
+          - cloudfront_realtime_logs
+          # Real-time rather than standard logs: standard log delivery to S3 is batched
+          # with delivery latency in minutes, and a sub-2-minute detection objective
+          # cannot be met from a source that arrives later than that.
+          - s3_standard_logs_for_athena_backfill
+        objective: 99.99
+        error_budget_minutes_30d: 4.32
+      - id: SLI-2b
+        type: latency
+        thresholds: { p95: 1.5s, p99: 3.0s }
+        objective: 99.5
+
+  - id: CUJ-4
+    name: Submit transaction
+    tier: 1
+    scored_at_four_nines: true
+    owner: transactions-team
+    pager: transactions-team
+    rationale: >-
+      Succeeds when the transaction is DURABLE, not when the money moves. Depends only on
+      cf-tier1-dist, apigw-tier1-use1, eks-tier1-use1, aur-tier1-use1 and
+      ddb-tier1-idempotency. ext-payments is reached asynchronously by the settlement
+      consumer and is therefore absent from this journey. See ../00-scope-assumptions.md
+      section 2.4 for the arithmetic that forced this.
+    slis:
+      - id: SLI-3
+        type: availability
+        measurement_point: apigw-tier1-use1 access logs, correlated against the Aurora durable write
+        good: returns 202 AND the transaction row and outbox row are both committed
+        # The numerator requires evidence of the durable write, not only the status code.
+        # A 202 from a handler that then failed to commit is a false success, and it is
+        # exactly the failure an HTTP-status-only SLI reports as healthy.
+        valid: all submit requests carrying a valid idempotency key
+        exclusions:
+          - duplicates deduplicated by idempotency key, counted separately as a correctness signal
+        data_source:
+          - api_gateway_access_logs
+          - emf_metric: transaction_committed
+        objective: 99.99
+        error_budget_minutes_30d: 4.32
+      - id: SLI-4
+        type: latency
+        measurement_point: apigw-tier1-use1 Latency and IntegrationLatency
+        thresholds: { p95: 800ms, p99: 2.0s }
+        objective: 99.5
+        note: >-
+          Both metrics are published. The gap between them isolates API Gateway overhead
+          from backend time, which removes the first ten minutes of argument in a latency
+          incident.
+
+  - id: CUJ-5
+    name: Settle transaction with the external provider
+    tier: 1
+    scored_at_four_nines: false
+    type: freshness
+    owner: transactions-team
+    pager: transactions-team
+    rationale: >-
+      Asynchronous by design, so a freshness objective rather than an availability one.
+      A 1 percent budget against a 15-minute objective tolerates roughly 7 hours of
+      provider outage per 30 days, which is the point of moving settlement off the
+      critical path.
+    slis:
+      - id: SLI-5
+        type: freshness
+        measurement_point: MSK consumer group lag and transaction state transitions
+        good: transaction reaches a terminal state within 15 minutes of acceptance
+        valid: all accepted transactions
+        exclusions:
+          - transactions deliberately held for manual review
+        data_source:
+          - cloudwatch_metrics: [EstimatedMaxTimeLag, MaxOffsetLag]
+          # MaxOffsetLag per partition, NOT SumOffsetLag. A single stalled partition out
+          # of thirty is invisible in a sum and is a total outage for every customer
+          # whose key hashes to it. See ../01-reliability-model.md section 4.3.
+          - emf_metric: acceptance_to_terminal_seconds
+        objective: 99.0
+
+correctness:
+  - id: SLI-7
+    name: Settlement reconciliation correctness
+    owner: transactions-team
+    escalation: finance-operations
+    measurement_point: daily reconciliation of internal terminal states against the provider settlement report
+    good: internal state matches the provider record
+    valid: all transactions in the reconciliation window
+    objective: 99.999
+    alarm: any non-zero mismatch
+    rationale: >-
+      Availability SLIs cannot see correctness failures. A provider that returns success
+      for a settlement that did not occur produces a perfect availability record and a
+      real financial loss. Nothing else in the model catches this.
+
+# ---------------------------------------------------------------------------
+# Standing data-protection SLOs. These are not journey SLIs. They exist because
+# RPO is a measurement, not a configuration: whatever the replication lag was at
+# the moment of failure IS the realised RPO. See ../04-regional-recovery.md 4.2.
+# ---------------------------------------------------------------------------
+data_protection:
+  rpo_objective: 5m
+  rto_objective: 45m
+  monitors:
+    - name: aurora-global-rpo-lag
+      metric: AuroraGlobalDBRPOLag
+      target: aur-tier1-use1
+      thresholds:
+        - { above: 60s,  for: 5m, action: ticket }
+        - { above: 150s, for: 5m, action: page, severity: sev2 }
+      # Critical fires at HALF the stated RPO on purpose. An alarm at 5 minutes fires
+      # when the objective is already missed, which is too late to act on.
+    - name: msk-replicator-latency
+      metric: ReplicationLatency
+      target: mskrep-tier1
+      thresholds:
+        - { above: 60s,  for: 5m, action: ticket }
+        - { above: 150s, for: 5m, action: page, severity: sev2 }
+
+# ---------------------------------------------------------------------------
+# Disaster clause. See ../01-reliability-model.md section 6.1.
+# ---------------------------------------------------------------------------
+disaster_clause:
+  declared_by: incident-commander
+  budget: 2 declared events per 12 months
+  excluded_from: journey SLOs above
+  bounded_at: 45m
+  beyond_bound: counts against the journey error budget
+  # Point 3 is what keeps the clause honest. An unbounded exclusion is a blank cheque,
+  # and a blank cheque removes the incentive to make recovery fast.
+  game_days_consume_budget: false
+  game_day_exception: if a game day causes customer impact it is an incident, it is declared, and it counts
+
+# ---------------------------------------------------------------------------
+# Regulatory ledger. RMiT paragraph 10.32 grants NO disaster exclusion.
+# See ../04-regional-recovery.md section 9.3. Verify paragraph against the
+# current BNM policy document.
+# ---------------------------------------------------------------------------
+regulatory_ledger:
+  framework: BNM RMiT
+  paragraph: "10.32 (verify against current policy document)"
+  limits:
+    cumulative_unplanned_downtime_rolling_12m: 240m
+    max_tolerable_downtime_single_incident: 120m
+  excludes: nothing
+  owner: technology-risk
+  measurement_supplied_by: sre
+  reported_at: quarterly reliability steering

@@ -1,0 +1,271 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1560" viewBox="0 0 1440 1560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0F172A"/>
+    </marker>
+    <marker id="repl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#047857"/>
+    </marker>
+    <marker id="ext" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#B45309"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="1560" fill="#FAFAF8"/>
+
+  <text x="20" y="34" font-size="21" font-weight="700" fill="#0F172A">Tier 1 digital service — AWS reference architecture</text>
+  <text x="20" y="57" font-size="13" fill="#475569">Trust boundaries · traffic flow · failure domains · security controls · RTO 45 min · RPO 5 min · journey SLO 99.99%</text>
+  <text x="20" y="77" font-size="12" fill="#B45309" font-weight="600">Selected cloud: Amazon Web Services. Names match 01-reliability-model.md §1, the runbooks and config/.</text>
+
+  <!-- ============ ZONE 1: UNTRUSTED INTERNET ============ -->
+  <rect x="20" y="96" width="1400" height="72" rx="6" fill="#FFFBEB" stroke="#B45309" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="36" y="118" font-size="13" font-weight="700" fill="#92400E">TRUST BOUNDARY 0 — UNTRUSTED · public internet · failure domain: client</text>
+  <rect x="40" y="126" width="170" height="32" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="125" y="146" font-size="12" fill="#0F172A" text-anchor="middle">Web browser</text>
+  <rect x="222" y="126" width="170" height="32" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="307" y="146" font-size="12" fill="#0F172A" text-anchor="middle">Mobile app</text>
+  <text x="410" y="140" font-size="11" fill="#7C3AED" font-weight="600">SEC: TLS 1.2+ enforced · HSTS · client retry capped at 1 (03 §3.1)</text>
+  <text x="410" y="155" font-size="11" fill="#475569">CloudWatch RUM collects real-user signal from here — canaries cannot see this hop (02 §5)</text>
+
+  <!-- ============ ZONE 2: AWS GLOBAL EDGE ============ -->
+  <rect x="20" y="184" width="1400" height="152" rx="6" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="2"/>
+  <text x="36" y="206" font-size="13" font-weight="700" fill="#1E40AF">TRUST BOUNDARY 1 — AWS GLOBAL EDGE · failure domain: GLOBAL</text>
+
+  <rect x="40" y="218" width="210" height="58" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="145" y="240" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">waf-tier1-edge</text>
+  <text x="145" y="257" font-size="10" fill="#475569" text-anchor="middle">AWS WAF · rate-based rules</text>
+  <text x="145" y="270" font-size="10" fill="#475569" text-anchor="middle">load shedding P3 first (03 §7)</text>
+
+  <rect x="266" y="218" width="230" height="58" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="381" y="240" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">cf-tier1-dist</text>
+  <text x="381" y="257" font-size="10" fill="#475569" text-anchor="middle">CloudFront · origin group failover</text>
+  <text x="381" y="270" font-size="10" fill="#475569" text-anchor="middle">origin response timeout 5s (not 30s)</text>
+
+  <rect x="512" y="218" width="230" height="58" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="627" y="240" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">CloudFront Function</text>
+  <text x="627" y="257" font-size="10" fill="#475569" text-anchor="middle">injects W3C traceparent</text>
+  <text x="627" y="270" font-size="10" fill="#475569" text-anchor="middle">edge anchor: x-amz-cf-id (02 §3.1)</text>
+
+  <rect x="786" y="218" width="250" height="58" rx="4" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text x="911" y="240" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">r53-tier1-zone</text>
+  <text x="911" y="257" font-size="10" fill="#475569" text-anchor="middle">origin.tier1.example · TTL 60s</text>
+  <text x="911" y="270" font-size="10" fill="#475569" text-anchor="middle">THE single switch point (04 §5.2)</text>
+
+  <rect x="1052" y="218" width="330" height="58" rx="4" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text x="1217" y="238" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">arc-tier1-cluster — Route 53 ARC routing controls</text>
+  <text x="1217" y="254" font-size="10" fill="#475569" text-anchor="middle">5 regional data-plane endpoints · safety rules · readiness checks</text>
+  <text x="1217" y="268" font-size="10" fill="#B45309" text-anchor="middle" font-weight="600">Operable when a regional control plane is impaired</text>
+
+  <text x="40" y="298" font-size="11" fill="#7C3AED" font-weight="600">SEC: Origin Access Control — CloudFront is the only principal permitted to reach the regional origins. No direct public path to API Gateway.</text>
+  <text x="40" y="314" font-size="11" fill="#475569">Failover = two ARC routing control state changes. CloudFront, WAF, the certificate and the customer hostname never change (04 §5.2).</text>
+  <text x="40" y="329" font-size="11" fill="#475569">Edge is a global failure domain. A CloudFront or Route 53 failure is not recoverable by regional failover and is accepted as AWS-managed redundancy.</text>
+
+  <!-- ============ ZONE 3: PRIMARY REGION ============ -->
+  <rect x="20" y="352" width="1400" height="556" rx="6" fill="#F0F9FF" stroke="#1D4ED8" stroke-width="2.5"/>
+  <text x="36" y="376" font-size="14" font-weight="700" fill="#1E40AF">TRUST BOUNDARY 2 — REGION us-east-1 · PRIMARY (ACTIVE) · failure domain: REGION</text>
+  <text x="1404" y="376" font-size="12" font-weight="700" fill="#047857" text-anchor="end">ARC routing control: ON</text>
+
+  <rect x="60" y="392" width="600" height="56" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="360" y="413" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">apigw-tier1-use1 — API Gateway REST</text>
+  <text x="360" y="430" font-size="10" fill="#475569" text-anchor="middle">integration timeout 4s, configured down from the 29s ceiling (03 §2.2)</text>
+  <text x="360" y="443" font-size="10" fill="#B45309" text-anchor="middle">per-method throttling · account quota 10,000 rps steady / 5,000 burst</text>
+
+  <text x="680" y="408" font-size="11" fill="#7C3AED" font-weight="600">SEC: Lambda authorizer validates OIDC token against locally cached JWKS.</text>
+  <text x="680" y="423" font-size="11" fill="#475569">CUJ-2 session validation makes NO runtime call to ext-idp (01 §2.1) — this is</text>
+  <text x="680" y="438" font-size="11" fill="#475569">what keeps the scored journey off the external synchronous path.</text>
+
+  <!-- VPC -->
+  <rect x="60" y="466" width="1320" height="426" rx="5" fill="#FFFFFF" stroke="#0369A1" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="76" y="487" font-size="12" font-weight="700" fill="#0369A1">VPC — private subnets only · no public ingress to compute · security groups least-privilege</text>
+
+  <!-- AZ columns -->
+  <rect x="80" y="500" width="425" height="226" rx="4" fill="#F8FAFC" stroke="#94A3B8" stroke-dasharray="5 3"/>
+  <text x="292" y="520" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">AZ us-east-1a — failure domain: AZ</text>
+  <rect x="100" y="530" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="292" y="546" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">eks-tier1-use1 — node group</text>
+  <text x="292" y="562" font-size="10" fill="#475569" text-anchor="middle">Karpenter · warm placeholder pods absorb spikes</text>
+  <rect x="100" y="580" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="292" y="596" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">Service pods + mesh-tier1 sidecar</text>
+  <text x="292" y="612" font-size="10" fill="#475569" text-anchor="middle">PDB · topology spread · outlier detection</text>
+  <text x="292" y="640" font-size="10" fill="#7C3AED" text-anchor="middle" font-weight="600">SEC: Istio mTLS between all pods · IRSA per service</text>
+  <text x="292" y="658" font-size="10" fill="#475569" text-anchor="middle">Bulkheads: separate bounded pool per dependency</text>
+  <text x="292" y="673" font-size="10" fill="#475569" text-anchor="middle">ext-payments pool = 10 conns, settlement consumer ONLY</text>
+  <text x="292" y="694" font-size="10" fill="#B45309" text-anchor="middle" font-weight="600">60% utilisation ceiling so 2 of 3 AZs carry full load</text>
+  <text x="292" y="712" font-size="10" fill="#475569" text-anchor="middle">ADOT collector: DaemonSet agent + gateway tier (02 §2.2)</text>
+
+  <rect x="517" y="500" width="425" height="226" rx="4" fill="#F8FAFC" stroke="#94A3B8" stroke-dasharray="5 3"/>
+  <text x="729" y="520" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">AZ us-east-1b — failure domain: AZ</text>
+  <rect x="537" y="530" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="729" y="546" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">eks-tier1-use1 — node group</text>
+  <text x="729" y="562" font-size="10" fill="#475569" text-anchor="middle">identical workload set</text>
+  <rect x="537" y="580" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="729" y="596" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">Service pods + mesh-tier1 sidecar</text>
+  <text x="729" y="612" font-size="10" fill="#475569" text-anchor="middle">PDB · topology spread · outlier detection</text>
+  <text x="729" y="642" font-size="10" fill="#475569" text-anchor="middle">Scaling signal = in-flight requests and MSK consumer</text>
+  <text x="729" y="657" font-size="10" fill="#475569" text-anchor="middle">lag via KEDA, NOT CPU. A pod blocked on a slow</text>
+  <text x="729" y="672" font-size="10" fill="#475569" text-anchor="middle">dependency has low CPU and high saturation (03 §6.2).</text>
+  <text x="729" y="698" font-size="10" fill="#7C3AED" text-anchor="middle" font-weight="600">SEC: no node has a public IP · egress via NAT only</text>
+
+  <rect x="954" y="500" width="425" height="226" rx="4" fill="#F8FAFC" stroke="#94A3B8" stroke-dasharray="5 3"/>
+  <text x="1166" y="520" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">AZ us-east-1c — failure domain: AZ</text>
+  <rect x="974" y="530" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="1166" y="546" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">eks-tier1-use1 — node group</text>
+  <text x="1166" y="562" font-size="10" fill="#475569" text-anchor="middle">identical workload set</text>
+  <rect x="974" y="580" width="385" height="40" rx="3" fill="#FFFFFF" stroke="#334155"/>
+  <text x="1166" y="596" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">Settlement consumer pods</text>
+  <text x="1166" y="612" font-size="10" fill="#475569" text-anchor="middle">circuit breaker to ext-payments · idempotent</text>
+  <text x="1166" y="642" font-size="10" fill="#B45309" text-anchor="middle" font-weight="600">Per-try timeout 1.5s is the SENSOR that lets the</text>
+  <text x="1166" y="657" font-size="10" fill="#B45309" text-anchor="middle" font-weight="600">circuit breaker detect a SLOW dependency (03 §5.2).</text>
+  <text x="1166" y="672" font-size="10" fill="#475569" text-anchor="middle">Envoy ejects on errors, never on latency alone.</text>
+  <text x="1166" y="698" font-size="10" fill="#475569" text-anchor="middle">maxEjectionPercent 50 — never zero out capacity</text>
+
+  <!-- Data tier -->
+  <rect x="80" y="740" width="1299" height="140" rx="4" fill="#ECFDF5" stroke="#047857" stroke-width="1.5"/>
+  <text x="96" y="760" font-size="11" font-weight="700" fill="#065F46">DATA TIER — AZ-redundant within region · failure domain: REGION for the cluster, AZ for each instance</text>
+
+  <rect x="100" y="770" width="255" height="52" rx="3" fill="#FFFFFF" stroke="#047857"/>
+  <text x="227" y="789" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">rdsproxy-tier1-use1</text>
+  <text x="227" y="805" font-size="10" fill="#475569" text-anchor="middle">RDS Proxy · absorbs connection</text>
+  <text x="227" y="817" font-size="10" fill="#475569" text-anchor="middle">churn on writer failover</text>
+
+  <rect x="370" y="770" width="275" height="52" rx="3" fill="#FFFFFF" stroke="#047857" stroke-width="2"/>
+  <text x="507" y="789" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">aur-tier1-use1 — WRITER</text>
+  <text x="507" y="805" font-size="10" fill="#475569" text-anchor="middle">Aurora PostgreSQL · 3 AZ</text>
+  <text x="507" y="817" font-size="10" fill="#B45309" text-anchor="middle">single writer — size for peak, resize = failover</text>
+
+  <rect x="660" y="770" width="250" height="52" rx="3" fill="#FFFFFF" stroke="#047857"/>
+  <text x="785" y="789" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">msk-tier1-use1</text>
+  <text x="785" y="805" font-size="10" fill="#475569" text-anchor="middle">MSK · brokers across 3 AZ</text>
+  <text x="785" y="817" font-size="10" fill="#475569" text-anchor="middle">partition count = capacity decision</text>
+
+  <rect x="925" y="770" width="200" height="52" rx="3" fill="#FFFFFF" stroke="#047857"/>
+  <text x="1025" y="789" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">sqs-tier1-settlement</text>
+  <text x="1025" y="805" font-size="10" fill="#475569" text-anchor="middle">+ -dlq · poison messages</text>
+  <text x="1025" y="817" font-size="10" fill="#475569" text-anchor="middle">alarm on oldest age, not depth</text>
+
+  <rect x="1140" y="770" width="220" height="52" rx="3" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text x="1250" y="789" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">NAT Gateway — static EIP</text>
+  <text x="1250" y="805" font-size="10" fill="#92400E" text-anchor="middle">THE egress allowlist identity</text>
+  <text x="1250" y="817" font-size="10" fill="#475569" text-anchor="middle">registered with both providers</text>
+
+  <text x="100" y="842" font-size="10" fill="#7C3AED" font-weight="600">SEC: encryption at rest with multi-Region KMS keys · Secrets Manager with cross-region replica secrets · statement_timeout 1.5s on Aurora</text>
+  <text x="100" y="857" font-size="10" fill="#475569">Transactional outbox written in the SAME Aurora transaction as the transaction row, so MSK is a SOFT dependency of CUJ-4 and an MSK outage delays settlement without losing it (01 §3.1).</text>
+  <text x="100" y="872" font-size="10" fill="#475569">RPO is a MEASUREMENT, not a setting: AuroraGlobalDBRPOLag alarms at 150s, half the 5-minute objective, so action is possible before the objective is missed (04 §4.2).</text>
+
+  <!-- ============ REPLICATION CHANNEL ============ -->
+  <line x1="507" y1="908" x2="507" y2="972" stroke="#047857" stroke-width="2.5" stroke-dasharray="7 4" marker-end="url(#repl)"/>
+  <text x="520" y="930" font-size="11" font-weight="700" fill="#047857">Aurora Global Database — physical replication, sub-second typical</text>
+  <text x="520" y="946" font-size="10" fill="#475569">Unplanned failover: RPO = replication lag at the moment of failure. Planned switchover: zero loss (04 §4.1).</text>
+  <text x="520" y="961" font-size="10" fill="#B91C1C" font-weight="600">Replicates CORRUPTION too — a data fault is NOT a failover case (04 §2.2).</text>
+
+  <line x1="785" y1="908" x2="785" y2="972" stroke="#047857" stroke-width="2.5" stroke-dasharray="7 4" marker-end="url(#repl)"/>
+  <text x="1010" y="930" font-size="11" font-weight="700" fill="#047857">mskrep-tier1 — MSK Replicator</text>
+  <text x="1010" y="946" font-size="10" fill="#475569">Consumer group OFFSET sync + identical topic names.</text>
+  <text x="1010" y="961" font-size="10" fill="#B45309" font-weight="600">Offset position, not durability, is the binding RPO constraint (04 §4.5).</text>
+
+  <!-- ============ ZONE 4: RECOVERY REGION ============ -->
+  <rect x="20" y="976" width="1400" height="208" rx="6" fill="#F0F9FF" stroke="#1D4ED8" stroke-width="2.5" stroke-dasharray="10 4"/>
+  <text x="36" y="1000" font-size="14" font-weight="700" fill="#1E40AF">TRUST BOUNDARY 3 — REGION us-west-2 · RECOVERY (WARM) · failure domain: REGION</text>
+  <text x="1404" y="1000" font-size="12" font-weight="700" fill="#B91C1C" text-anchor="end">ARC routing control: OFF</text>
+  <text x="36" y="1020" font-size="11" fill="#B45309" font-weight="600">STATIC STABILITY: identical topology at FULL production capacity. Recovery does not depend on scaling up a region under stress while every other AWS customer does the same (03 §9.1).</text>
+
+  <rect x="60" y="1032" width="200" height="50" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="160" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">apigw-tier1-usw2</text>
+  <text x="160" y="1068" font-size="10" fill="#475569" text-anchor="middle">identical config</text>
+
+  <rect x="284" y="1032" width="200" height="50" rx="4" fill="#FFFFFF" stroke="#334155"/>
+  <text x="384" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">eks-tier1-usw2</text>
+  <text x="384" y="1068" font-size="10" fill="#475569" text-anchor="middle">3 AZ · full capacity</text>
+
+  <rect x="508" y="1032" width="200" height="50" rx="4" fill="#FFFFFF" stroke="#047857"/>
+  <text x="608" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">rdsproxy-tier1-usw2</text>
+  <text x="608" y="1068" font-size="10" fill="#475569" text-anchor="middle">pre-bound to local cluster</text>
+
+  <rect x="732" y="1032" width="200" height="50" rx="4" fill="#FFFFFF" stroke="#047857" stroke-width="2"/>
+  <text x="832" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">aur-tier1-usw2</text>
+  <text x="832" y="1068" font-size="10" fill="#475569" text-anchor="middle">SECONDARY → promoted</text>
+
+  <rect x="956" y="1032" width="200" height="50" rx="4" fill="#FFFFFF" stroke="#047857"/>
+  <text x="1056" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">msk-tier1-usw2</text>
+  <text x="1056" y="1068" font-size="10" fill="#475569" text-anchor="middle">offsets synced</text>
+
+  <rect x="1180" y="1032" width="200" height="50" rx="4" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text x="1280" y="1052" font-size="11" font-weight="600" fill="#0F172A" text-anchor="middle">NAT GW — static EIP</text>
+  <text x="1280" y="1068" font-size="10" fill="#92400E" text-anchor="middle">ALSO allowlisted</text>
+
+  <text x="60" y="1104" font-size="10" fill="#B91C1C" font-weight="600">No application configuration changes during failover. Apps address the RDS Proxy, topic names are identical, and the customer hostname never moves.</text>
+  <text x="60" y="1120" font-size="10" fill="#475569">syn-cuj1..5 canaries run here CONTINUOUSLY at 1-minute frequency. Their standing green state is the evidence that this region can serve TODAY, which is the</text>
+  <text x="60" y="1135" font-size="10" fill="#475569">direct answer to "DR has never been exercised end to end", and the input to the decision-tree branch that forbids failing into an unverified region (04 §2.2).</text>
+  <text x="60" y="1156" font-size="10" fill="#7C3AED" font-weight="600">SEC: multi-Region KMS keys · replica secrets · ECR cross-region replication · service quotas matched and alarmed · ACM certs issued in BOTH regions.</text>
+  <text x="60" y="1171" font-size="10" fill="#B45309" font-weight="600">ARC readiness checks continuously diff this region against the primary and surface drift BEFORE it matters (04 §5.4).</text>
+
+  <!-- ============ ZONE 5: DYNAMODB GLOBAL ============ -->
+  <rect x="20" y="1200" width="1400" height="58" rx="6" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+  <text x="36" y="1222" font-size="12" font-weight="700" fill="#065F46">ddb-tier1-idempotency — DynamoDB Global Table · ACTIVE-ACTIVE in both regions · failure domain: MULTI-REGION</text>
+  <text x="36" y="1240" font-size="10" fill="#475569">Idempotency state must survive the loss of the region whose failure makes replay necessary, so it cannot live in the Aurora cluster being recovered (03 §4.3).</text>
+  <text x="36" y="1253" font-size="10" fill="#B91C1C" font-weight="600">ACCEPTED RISK: last-writer-wins replication leaves a lag window where a duplicate can slip through during failover. Bounded, not eliminated. Caught by reconciliation (04 §7.3) and reported, not hidden.</text>
+
+  <!-- ============ ZONE 6: EXTERNAL PROVIDERS ============ -->
+  <rect x="20" y="1276" width="1400" height="116" rx="6" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="36" y="1298" font-size="13" font-weight="700" fill="#991B1B">TRUST BOUNDARY 4 — EXTERNAL PROVIDERS · OUTSIDE ALL AWS BOUNDARIES · failure domain: THIRD PARTY, not controllable</text>
+
+  <rect x="40" y="1308" width="250" height="56" rx="4" fill="#FFFFFF" stroke="#B91C1C"/>
+  <text x="165" y="1328" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">ext-payments</text>
+  <text x="165" y="1344" font-size="10" fill="#475569" text-anchor="middle">ASYNC ONLY — reached from the</text>
+  <text x="165" y="1357" font-size="10" fill="#475569" text-anchor="middle">settlement consumer, never from submit</text>
+
+  <rect x="306" y="1308" width="250" height="56" rx="4" fill="#FFFFFF" stroke="#B91C1C"/>
+  <text x="431" y="1328" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">ext-idp</text>
+  <text x="431" y="1344" font-size="10" fill="#475569" text-anchor="middle">CUJ-1 sign-in only · JWKS cached 24h</text>
+  <text x="431" y="1357" font-size="10" fill="#475569" text-anchor="middle">CUJ-2 validation makes NO call here</text>
+
+  <text x="576" y="1322" font-size="11" fill="#B91C1C" font-weight="700">Two providers at 99.9% on the synchronous path cap the journey at 99.79% — 21x over a 99.99% error budget (00 §2.4).</text>
+  <text x="576" y="1338" font-size="11" fill="#0F172A" font-weight="600">This is why submit returns 202 Accepted on a DURABLE WRITE and settles asynchronously. The arithmetic drove the architecture.</text>
+  <text x="576" y="1354" font-size="10" fill="#475569">Worst failure mode is SLOW-BUT-UP, not down: it returns 200, holds connections, exhausts pools and never trips an error-based breaker (01 §4.4).</text>
+  <text x="576" y="1369" font-size="10" fill="#B45309" font-weight="600">syn-ext-payments and syn-ext-idp probe from BOTH regions continuously, which is what proves the recovery region's egress is allowlisted before it is needed.</text>
+
+  <!-- Arrows: traffic flow -->
+  <line x1="200" y1="168" x2="200" y2="214" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="208" y="195" font-size="11" font-weight="700" fill="#0F172A">1 HTTPS</text>
+  <line x1="381" y1="280" x2="381" y2="388" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="389" y="340" font-size="11" font-weight="700" fill="#0F172A">2 origin fetch via OAC → active region only</text>
+  <line x1="360" y1="448" x2="360" y2="526" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="368" y="492" font-size="11" font-weight="700" fill="#0F172A">3 private integration</text>
+  <line x1="292" y1="620" x2="292" y2="766" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="300" y="700" font-size="11" font-weight="700" fill="#0F172A">4 write + outbox, one txn</text>
+  <line x1="1166" y1="620" x2="1166" y2="766" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="1174" y="700" font-size="11" font-weight="700" fill="#0F172A">5 consume</text>
+  <line x1="1250" y1="822" x2="1250" y2="1196" stroke="#B45309" stroke-width="2.5" stroke-dasharray="7 4" marker-end="url(#ext)"/>
+  <text x="1258" y="1000" font-size="11" font-weight="700" fill="#B45309">6 async settle</text>
+  <line x1="1280" y1="1082" x2="1280" y2="1272" stroke="#B45309" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#ext)"/>
+  <line x1="165" y1="1258" x2="165" y2="1196" stroke="#047857" stroke-width="2" stroke-dasharray="5 3"/>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="20" y="1410" width="1400" height="130" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="36" y="1432" font-size="12" font-weight="700" fill="#0F172A">LEGEND</text>
+
+  <line x1="40" y1="1450" x2="100" y2="1450" stroke="#0F172A" stroke-width="2.5" marker-end="url(#flow)"/>
+  <text x="110" y="1454" font-size="11" fill="#475569">Synchronous customer traffic</text>
+  <line x1="300" y1="1450" x2="360" y2="1450" stroke="#047857" stroke-width="2.5" stroke-dasharray="7 4" marker-end="url(#repl)"/>
+  <text x="370" y="1454" font-size="11" fill="#475569">Cross-region replication</text>
+  <line x1="560" y1="1450" x2="620" y2="1450" stroke="#B45309" stroke-width="2.5" stroke-dasharray="7 4" marker-end="url(#ext)"/>
+  <text x="630" y="1454" font-size="11" fill="#475569">Asynchronous / external call</text>
+  <text x="850" y="1454" font-size="11" fill="#7C3AED" font-weight="600">SEC:</text>
+  <text x="890" y="1454" font-size="11" fill="#475569">security control</text>
+
+  <rect x="40" y="1468" width="26" height="14" rx="2" fill="#FFFBEB" stroke="#B45309" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="76" y="1479" font-size="11" fill="#475569">Untrusted zone</text>
+  <rect x="200" y="1468" width="26" height="14" rx="2" fill="#F0F9FF" stroke="#1D4ED8" stroke-width="2"/>
+  <text x="236" y="1479" font-size="11" fill="#475569">AWS trust boundary</text>
+  <rect x="380" y="1468" width="26" height="14" rx="2" fill="#F8FAFC" stroke="#94A3B8" stroke-dasharray="5 3"/>
+  <text x="416" y="1479" font-size="11" fill="#475569">Availability zone — failure domain</text>
+  <rect x="640" y="1468" width="26" height="14" rx="2" fill="#ECFDF5" stroke="#047857" stroke-width="1.5"/>
+  <text x="676" y="1479" font-size="11" fill="#475569">Stateful / data tier</text>
+  <rect x="820" y="1468" width="26" height="14" rx="2" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="856" y="1479" font-size="11" fill="#475569">Third party — not controllable</text>
+  <rect x="1060" y="1468" width="26" height="14" rx="2" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text x="1096" y="1479" font-size="11" fill="#475569">Recovery control / egress identity</text>
+
+  <text x="40" y="1503" font-size="11" fill="#0F172A" font-weight="600">Request path: 1 client → 2 CloudFront origin fetch → 3 API Gateway private integration → 4 Aurora write + outbox in one transaction, return 202 → 5 outbox relay to MSK, consumer reads → 6 settle with provider.</text>
+  <text x="40" y="1521" font-size="11" fill="#475569">Failure domains, innermost outward: pod → AZ (3 per region) → region (2) → global edge → third party. Steps 1 to 4 are the scored 99.99% journey. Steps 5 and 6 carry a separate 15-minute freshness SLO.</text>
+</svg>
