@@ -33,7 +33,7 @@
 
   <rect x="40" y="218" width="210" height="58" rx="4" fill="#FFFFFF" stroke="#334155"/>
   <text x="145" y="240" font-size="12" font-weight="600" fill="#0F172A" text-anchor="middle">waf-tier1-edge</text>
-  <text x="145" y="257" font-size="10" fill="#475569" text-anchor="middle">AWS WAF · rate-based rules</text>
+  <text x="145" y="257" font-size="10" fill="#475569" text-anchor="middle">AWS WAF + Shield Advanced</text>
   <text x="145" y="270" font-size="10" fill="#475569" text-anchor="middle">load shedding P3 first (03 §7)</text>
 
   <rect x="266" y="218" width="230" height="58" rx="4" fill="#FFFFFF" stroke="#334155"/>
@@ -56,7 +56,7 @@
   <text x="1217" y="254" font-size="10" fill="#475569" text-anchor="middle">5 regional data-plane endpoints · safety rules · readiness checks</text>
   <text x="1217" y="268" font-size="10" fill="#B45309" text-anchor="middle" font-weight="600">Operable when a regional control plane is impaired</text>
 
-  <text x="40" y="298" font-size="11" fill="#7C3AED" font-weight="600">SEC: Origin Access Control — CloudFront is the only principal permitted to reach the regional origins. No direct public path to API Gateway.</text>
+  <text x="40" y="298" font-size="11" fill="#7C3AED" font-weight="600">SEC: CloudFront injects a secret origin header; a regional WAF rule on apigw-tier1-* rejects any request lacking it. OAC does NOT support API Gateway origins — it is a custom origin.</text>
   <text x="40" y="314" font-size="11" fill="#475569">Failover = two ARC routing control state changes. CloudFront, WAF, the certificate and the customer hostname never change (04 §5.2).</text>
   <text x="40" y="329" font-size="11" fill="#475569">Edge is a global failure domain. A CloudFront or Route 53 failure is not recoverable by regional failover and is accepted as AWS-managed redundancy.</text>
 
