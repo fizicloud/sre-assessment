@@ -90,7 +90,11 @@ Objective from section 01: p95 at or under 800 ms, p99 at or under 2.0 seconds.
 | 6 | Aurora via `rdsproxy-tier1-use1` | none | **1.5 s** `statement_timeout` | A statement exceeding this cannot contribute to a 2 s objective |
 | 7 | `ddb-tier1-idempotency` | SDK default | **300 ms**, adaptive retry mode | Single-digit-millisecond service, so 300 ms is already generous |
 
-Each value is strictly below the one above it. Hop 3 is the important row. **Leaving API Gateway at its 29-second ceiling for a journey with a 2-second objective is the specific configuration that made the retry storms possible.**
+Each value is strictly below the one above it. Hop 3 is the important row. **Leaving API Gateway at its 29-second default for a journey with a 2-second objective is the specific configuration that made the retry storms possible.**
+
+A note on that 29 seconds, because it is commonly described as a hard limit and is not one. Since June 2024 the integration timeout quota can be raised above 29 seconds for Regional and private REST APIs, though not for edge-optimised ones, and the increase is granted in exchange for a reduction in the account's region-level throttle quota. That trade is worth knowing for two reasons. It confirms the 29 seconds is a tunable default rather than a platform ceiling, which is the whole point of this section. And the direction of the trade is instructive: AWS prices a longer timeout in lost throughput, which is Little's Law expressed as a billing decision.
+
+For this service the quota moves in the opposite direction. The objective is 2 seconds, so the integration timeout is configured **down** to 4 seconds. No quota increase is requested, and none should be.
 
 ### 2.3 Deadline propagation
 

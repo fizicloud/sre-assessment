@@ -103,7 +103,7 @@ Derived from the architecture and from the three symptoms stated in the brief. D
 | Origin unreachable from CloudFront | Total journey loss | CloudFront `5xxErrorRate`, `OriginLatency`, origin failover events |
 | ACM certificate expiry | Total journey loss, no gradual onset | ACM `DaysToExpiry` metric, alarm at 30 days |
 | API Gateway account throttle, 10,000 RPS steady and 5,000 burst by default | Blanket 429s across all journeys | API Gateway `Count` against quota, `4XXError` |
-| Integration timeout at the 29-second REST API ceiling | 504 to the customer after a long wait, the worst customer experience of any failure mode | API Gateway `IntegrationLatency` p99, `5XXError` |
+| Integration timeout at the 29-second REST API default | 504 to the customer after a long wait, the worst customer experience of any failure mode | API Gateway `IntegrationLatency` p99, `5XXError` |
 | WAF rule false positive after a managed rule set update | Legitimate traffic blocked, often for a subset | WAF `BlockedRequests` by rule, sudden change in blocked ratio |
 | Authorizer failure or JWKS fetch failure | All authenticated requests fail | API Gateway `4XXError`, authorizer latency, JWKS fetch metric |
 
